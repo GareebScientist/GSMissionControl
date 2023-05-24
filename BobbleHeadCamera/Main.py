@@ -34,6 +34,7 @@ class ImageCombinationApp:
         # Create a button to combine and display the images
         self.button_combine_images = tk.Button(self.window, text="Combine Images", command=self.display_images)
         self.button_combine_images.pack(pady=10)
+        self.display_thumbnails()
 
         self.window.protocol("WM_DELETE_WINDOW", self.close_app)
 
