@@ -1,137 +1,90 @@
 import cv2
-import pyvirtualcam
 import tkinter as tk
-from PIL import Image, ImageTk
 from tkinter import filedialog
+from PIL import Image, ImageTk
 import numpy as np
 
 class VirtualCameraApp:
     def __init__(self):
         self.window = tk.Tk()
-        self.window.title("Image as Virtual Camera")
-        self.virtual_cam = None
+        self.window.title("Image Combination")
         self.images = [None, None]
-        self.camera_on = False
-        self.ui_initialized = False
+        self.thumbnails = [None, None]
 
-        # Create buttons to select images
+        # Create buttons and thumbnails for image selection
         self.buttons_select_image = []
+        self.labels_thumbnails = []
         for i in range(2):
-            button = tk.Button(self.window, text=f"Select Image {i+1}", command=lambda idx=i: self.select_image(idx))
-            button.pack(pady=10)
+            frame = tk.Frame(self.window)
+            frame.pack(pady=10)
+
+            button = tk.Button(frame, text=f"Select Image {i+1}", command=lambda idx=i: self.select_image(idx))
+            button.pack(side=tk.LEFT, padx=5)
             self.buttons_select_image.append(button)
 
-        # Create a button to start/stop the virtual camera
-        self.button_start_camera = tk.Button(self.window, text="Start Camera", command=self.toggle_camera)
-        self.button_start_camera.pack(pady=10)
+            thumbnail = tk.Label(frame)
+            thumbnail.pack(side=tk.LEFT)
+            self.labels_thumbnails.append(thumbnail)
 
-        # Create a label for the camera status indicator
-        self.label_status = tk.Label(self.window, text="Camera OFF", fg="red")
-        self.label_status.pack(pady=10)
-
-        # Create a label to display the images
-        self.label_images = tk.Label(self.window)
-        self.label_images.pack()
+        # Create a button to combine and display the images
+        self.button_combine_images = tk.Button(self.window, text="Combine Images", command=self.display_images)
+        self.button_combine_images.pack(pady=10)
 
         self.window.protocol("WM_DELETE_WINDOW", self.close_app)
-
-    def initialize_ui(self):
-        self.ui_initialized = True
 
     def select_image(self, idx):
         path = filedialog.askopenfilename()
         if path:
             # Load the selected image
-            image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-            if image.shape[2] == 3:  # Convert RGB image to RGBA
-                alpha_channel = 255 * (image[:, :, 3] > 0).astype(image.dtype)
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
-                image[:, :, 3] = alpha_channel
+            image = cv2.imread(path)
+            thumbnail = self.create_thumbnail(image)
             self.images[idx] = image
-            # Display the images in the UI
-            self.display_images()
+            self.thumbnails[idx] = thumbnail
+            self.display_thumbnails()
+
+    def create_thumbnail(self, image):
+        # Resize the image to a smaller size for thumbnail display
+        thumbnail_size = (100, 100)
+        image_resized = cv2.resize(image, thumbnail_size)
+
+        # Convert the resized image to PIL format
+        image_pil = Image.fromarray(cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB))
+
+        # Create a PhotoImage object from the resized image
+        thumbnail = ImageTk.PhotoImage(image_pil)
+
+        return thumbnail
+
+    def display_thumbnails(self):
+        for i, thumbnail in enumerate(self.thumbnails):
+            if thumbnail is not None:
+                self.labels_thumbnails[i].config(image=thumbnail)
+                self.labels_thumbnails[i].image = thumbnail
 
     def display_images(self):
         combined_image = self.combine_images()
         if combined_image is not None:
-            # Convert the combined image to PIL format
-            combined_image = Image.fromarray(combined_image)
-            # Resize the image to fit the UI window
-            combined_image = combined_image.resize((640, 480))
-            # Create a PhotoImage object to display in the UI
-            photo = ImageTk.PhotoImage(combined_image)
-            self.label_images.config(image=photo)
-            self.label_images.image = photo  # Keep a reference to prevent garbage collection
+            # Display the combined image in a separate window using OpenCV
+            cv2.imshow("Combined Image", combined_image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
     def combine_images(self):
         image1 = self.images[0]
         image2 = self.images[1]
-        if image1 is None and image2 is None:
+        if image1 is None or image2 is None:
             return None
-        elif image1 is None:
-            return image2
-        elif image2 is None:
-            return image1
         else:
-            # Resize both images to a fixed size
-            image1_resized = cv2.resize(image1, (640, 480))
-            image2_resized = cv2.resize(image2, (640, 480))
+            # Resize image2 to match the size of image1
+            image2_resized = cv2.resize(image2, (image1.shape[1], image1.shape[0]))
 
-            # Convert image2_resized to RGBA color space
-            if image2_resized.shape[2] == 3:
-                image2_resized = cv2.cvtColor(image2_resized, cv2.COLOR_RGB2RGBA)
+            # Overlay image2 onto image1
+            combined_image = cv2.addWeighted(image1, 1, image2_resized, 1, 0)
 
-            # Overlay image2_resized onto image1_resized
-            overlay_alpha = image2_resized[:, :, 3] / 255.0
-            overlay_alpha = overlay_alpha[:, :, np.newaxis]  # Add a new axis for broadcasting
-            overlay = (1 - overlay_alpha) * image1_resized + overlay_alpha * image2_resized
-
-            # Remove the alpha channel from the overlay image
-            overlay = overlay[:, :, :3]
-
-            return overlay.astype(np.uint8)
-
-
-    def toggle_camera(self):
-        if not self.camera_on:
-            if any(image is not None for image in self.images):
-                self.start_camera()
-                self.button_start_camera.config(text="Stop Camera")
-                self.label_status.config(text="Camera ON", fg="green")
-            else:
-                tk.messagebox.showerror("Error", "Please select at least one image.")
-        else:
-            self.stop_camera()
-            self.button_start_camera.config(text="Start Camera")
-            self.label_status.config(text="Camera OFF", fg="red")
-
-    def start_camera(self):
-        if not self.ui_initialized:
-            self.initialize_ui()
-
-        self.virtual_cam = pyvirtualcam.Camera(width=640, height=480, fps=30)
-        self.camera_on = True
-        self.window.after(0, self.stream_image)
-
-    def stop_camera(self):
-        self.camera_on = False
-        if self.virtual_cam is not None:
-            self.virtual_cam.close()
-
-    def stream_image(self):
-        if self.camera_on:
-            combined_image = self.combine_images()
-            if combined_image is not None:
-                # Send the combined image to the virtual camera
-                self.virtual_cam.send(combined_image)
-            # Wait for the next frame
-            self.virtual_cam.sleep_until_next_frame()
-            self.window.after(1, self.stream_image)
+            return combined_image
 
     def close_app(self):
-        self.stop_camera()
         self.window.destroy()
-
 
 # Create an instance of the VirtualCameraApp class
 app = VirtualCameraApp()
