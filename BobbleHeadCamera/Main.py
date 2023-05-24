@@ -3,18 +3,23 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 import numpy as np
+import json
 
-class VirtualCameraApp:
+class ImageCombinationApp:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Image Combination")
-        self.images = [None, None]
-        self.thumbnails = [None, None]
+        self.images = [None, None, None]
+        self.thumbnails = [None, None, None]
+        self.image_paths = [None, None, None]
+
+        # Load image paths from file
+        self.load_image_paths()
 
         # Create buttons and thumbnails for image selection
         self.buttons_select_image = []
         self.labels_thumbnails = []
-        for i in range(2):
+        for i in range(3):
             frame = tk.Frame(self.window)
             frame.pack(pady=10)
 
@@ -36,11 +41,13 @@ class VirtualCameraApp:
         path = filedialog.askopenfilename()
         if path:
             # Load the selected image
-            image = cv2.imread(path)
+            image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
             thumbnail = self.create_thumbnail(image)
             self.images[idx] = image
             self.thumbnails[idx] = thumbnail
+            self.image_paths[idx] = path
             self.display_thumbnails()
+            self.save_image_paths()
 
     def create_thumbnail(self, image):
         # Resize the image to a smaller size for thumbnail display
@@ -48,7 +55,7 @@ class VirtualCameraApp:
         image_resized = cv2.resize(image, thumbnail_size)
 
         # Convert the resized image to PIL format
-        image_pil = Image.fromarray(cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB))
+        image_pil = Image.fromarray(cv2.cvtColor(image_resized, cv2.COLOR_BGRA2RGBA))
 
         # Create a PhotoImage object from the resized image
         thumbnail = ImageTk.PhotoImage(image_pil)
@@ -64,7 +71,8 @@ class VirtualCameraApp:
     def display_images(self):
         combined_image = self.combine_images()
         if combined_image is not None:
-            # Display the combined image in a separate window using OpenCV
+            # Create a new window for displaying the combined image
+            cv2.namedWindow("Combined Image", cv2.WINDOW_NORMAL)
             cv2.imshow("Combined Image", combined_image)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
@@ -72,22 +80,47 @@ class VirtualCameraApp:
     def combine_images(self):
         image1 = self.images[0]
         image2 = self.images[1]
-        if image1 is None or image2 is None:
+        image3 = self.images[2]
+        if image1 is None or image2 is None or image3 is None:
             return None
         else:
-            # Resize image2 to match the size of image1
-            image2_resized = cv2.resize(image2, (image1.shape[1], image1.shape[0]))
+            # Resize images to match the size of the largest image
+            max_height = max(image1.shape[0], image2.shape[0], image3.shape[0])
+            max_width = max(image1.shape[1], image2.shape[1], image3.shape[1])
+            image1_resized = cv2.resize(image1, (max_width, max_height))
+            image2_resized = cv2.resize(image2, (max_width, max_height))
+            image3_resized = cv2.resize(image3, (max_width, max_height))
 
-            # Overlay image2 onto image1
-            combined_image = cv2.addWeighted(image1, 1, image2_resized, 1, 0)
+            # Combine the images by overlaying them on top of each other
+            combined_image = image1_resized.copy()
+            combined_image[image2_resized[:, :, 3] > 0] = image2_resized[image2_resized[:, :, 3] > 0]
+            combined_image[image3_resized[:, :, 3] > 0] = image3_resized[image3_resized[:, :, 3] > 0]
 
             return combined_image
 
+    def save_image_paths(self):
+        with open("image_paths.json", "w") as file:
+            json.dump(self.image_paths, file)
+
+    def load_image_paths(self):
+        try:
+            with open("image_paths.json", "r") as file:
+                self.image_paths = json.load(file)
+                for idx, path in enumerate(self.image_paths):
+                    if path:
+                        image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+                        thumbnail = self.create_thumbnail(image)
+                        self.images[idx] = image
+                        self.thumbnails[idx] = thumbnail
+        except FileNotFoundError:
+            pass
+
     def close_app(self):
+        self.save_image_paths()
         self.window.destroy()
 
-# Create an instance of the VirtualCameraApp class
-app = VirtualCameraApp()
+# Create an instance of the ImageCombinationApp class
+app = ImageCombinationApp()
 
 # Start the UI event loop
 app.window.mainloop()
