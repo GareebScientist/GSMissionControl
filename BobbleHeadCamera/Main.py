@@ -8,6 +8,7 @@ import pyaudio
 import audioop
 import math
 import threading
+import pygame
 
 class ImageCombinationApp:
     def __init__(self):
@@ -89,9 +90,7 @@ class ImageCombinationApp:
     def display_images(self):
         combined_image = self.combine_images()
         if combined_image is not None:
-            cv2.namedWindow("Combined Image", cv2.WINDOW_NORMAL)
-            cv2.imshow("Combined Image", combined_image)
-            cv2.waitKey(1)
+            self.display_pygame_window(combined_image)
 
     def combine_images(self):
         if all(image is not None for image in self.images):
@@ -104,6 +103,35 @@ class ImageCombinationApp:
                 combined_image[image[:, :, 3] > 0] = image[image[:, :, 3] > 0]
             return combined_image
 
+    def display_pygame_window(self, combined_image):
+        # Convert the image to RGB format
+        combined_image = cv2.cvtColor(combined_image, cv2.COLOR_BGRA2RGB)
+
+        # Create a Pygame surface from the image
+        combined_image_surface = pygame.image.fromstring(combined_image.tobytes(), combined_image.shape[1::-1], 'RGB')
+
+        # Initialize Pygame
+        pygame.init()
+
+        # Create a Pygame window
+        window = pygame.display.set_mode(combined_image.shape[1::-1])
+
+        # Main game loop
+        running = True
+        while running:
+            # Event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            # Draw the image onto the window
+            window.blit(combined_image_surface, (0, 0))
+
+            # Update the display
+            pygame.display.flip()
+
+        # Quit Pygame
+        pygame.quit()
 
     def load_image_paths(self):
         try:
