@@ -84,29 +84,29 @@ def toggle_countdown():
         toggle_button.config(text="Stop Timer")
 
 root = Tk()
-root.geometry("500x400")  # Adjust the window size
+root.geometry("600x500")  # Adjust the window size
 root.title("Rocket Countdown Timer")
 
 time_str = StringVar()
 countdown_thread = None
 
-Label(root, text="Enter UTC time (YYYY-MM-DD HH:MM:SS):", font=("Helvetica", 14)).pack()
+Label(root, text="Enter UTC time (YYYY-MM-DD HH:MM:SS):", font=("Helvetica", 14)).grid(row=0, column=0, columnspan=5)
 utc_entry = Entry(root, font=("Helvetica", 12))
-utc_entry.pack()
+utc_entry.grid(row=1, column=0, columnspan=5)
 
-Label(root, text="OR Enter seconds:", font=("Helvetica", 14)).pack()
+Label(root, text="OR Enter seconds:", font=("Helvetica", 14)).grid(row=2, column=0, columnspan=5)
 sec_entry = Entry(root, font=("Helvetica", 12))
-sec_entry.pack()
+sec_entry.grid(row=3, column=0, columnspan=5)
 
 toggle_button = Button(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
-toggle_button.pack()
+toggle_button.grid(row=4, column=0, columnspan=5)
 
 for i in range(1, 6):
-    Button(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).pack()
+    Button(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=5, column=i-1)
 
 for i in range(1, 6):
-    Button(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).pack()
+    Button(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=6, column=i-1)
 
-Label(root, textvariable=time_str, font=("Helvetica", 20)).pack()
+Label(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=7, column=0, columnspan=5)
 
 root.mainloop()
