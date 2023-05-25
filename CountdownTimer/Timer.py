@@ -1,5 +1,7 @@
 import time
 import threading
+import pytz
+from datetime import datetime
 from tkinter import Tk, Label, Entry, Button, StringVar
 
 class CountdownThread(threading.Thread):
@@ -43,21 +45,52 @@ def toggle_countdown():
         countdown_thread = None
         toggle_button.config(text="Start Timer")
     else:
-        t = int(entry.get())
-        countdown_thread = CountdownThread(t)
+        t = 0
+        utc_time_str = utc_entry.get()  # Get the entered UTC time
+        sec_str = sec_entry.get()
+
+        if utc_time_str:  # If a UTC time was entered
+            try:
+                utc_time = datetime.strptime(utc_time_str, '%Y-%m-%d %H:%M:%S')  # Parse the string into a datetime object
+                utc_time = pytz.utc.localize(utc_time)  # Ensure the datetime object is timezone-aware
+                current_time = datetime.now(pytz.utc)  # Get the current time in UTC
+
+                # Calculate the time difference in seconds
+                time_diff = utc_time - current_time
+                t = time_diff.total_seconds()
+
+                if t < 0:  # If the entered time is in the past, display an error and return
+                    time_str.set("Error: Entered time is in the past")
+                    return
+            except Exception as e:
+                print("Error parsing UTC time: ", e)
+                if sec_str:
+                    t = int(sec_str)
+                else:
+                    return
+        elif sec_str:
+            t = int(sec_str)
+        else:
+            return
+
+        countdown_thread = CountdownThread(int(t))
         countdown_thread.start()
         toggle_button.config(text="Stop Timer")
 
 root = Tk()
-root.geometry("300x150")  # Adjust the window size
+root.geometry("400x250")  # Adjust the window size
 root.title("Rocket Countdown Timer")
 
 time_str = StringVar()
 countdown_thread = None
 
-Label(root, text="Enter seconds:", font=("Helvetica", 16)).pack()
-entry = Entry(root, font=("Helvetica", 14))
-entry.pack()
+Label(root, text="Enter UTC time (YYYY-MM-DD HH:MM:SS):", font=("Helvetica", 14)).pack()
+utc_entry = Entry(root, font=("Helvetica", 12))
+utc_entry.pack()
+
+Label(root, text="OR Enter seconds:", font=("Helvetica", 14)).pack()
+sec_entry = Entry(root, font=("Helvetica", 12))
+sec_entry.pack()
 
 toggle_button = Button(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
 toggle_button.pack()
