@@ -9,7 +9,7 @@ import audioop
 import math
 import threading
 import pygame
-
+from tkinter import ttk
 
 class ImageCombinationApp:
     def __init__(self):
@@ -23,6 +23,7 @@ class ImageCombinationApp:
         self.processing = False
         self.stream = None
         self.image2_position = 0
+        self.bobbing_threshold = 20
 
         self.load_image_paths()
 
@@ -52,6 +53,10 @@ class ImageCombinationApp:
         self.gradient_canvas = tk.Canvas(self.window, width=200, height=20)
         self.gradient_canvas.pack(pady=10)
         self.gradient_bar = self.gradient_canvas.create_rectangle(0, 0, 0, 20, fill='green')
+
+        self.bobbing_slider = ttk.Scale(self.window, from_=0, to=100, length=200, command=self.update_bobbing_threshold)
+        self.bobbing_slider.pack(pady=10)
+        self.bobbing_slider.set(self.bobbing_threshold)
 
         self.display_thumbnails()
 
@@ -98,8 +103,8 @@ class ImageCombinationApp:
 
     def combine_images(self):
         if all(image is not None for image in self.images):
-            max_height = max(image.shape[0] for image in self.images)
-            max_width = max(image.shape[1] for image in self.images)
+            max_height = max(image.shape[0] for image in self.images if image is not None)
+            max_width = max(image.shape[1] for image in self.images if image is not None)
             combined_image = np.zeros((max_height, max_width, 4), dtype=np.uint8)
             for image in self.images:
                 if image.shape[0] != max_height or image.shape[1] != max_width:
@@ -181,7 +186,10 @@ class ImageCombinationApp:
             self.gradient_canvas.coords(self.gradient_bar, 0, 0, rms * 2, 20)  # Multiplied by 2 to get visible change
 
             # Update the position of image 2 based on the rms value
-            self.image2_position = rms
+            if rms >= self.bobbing_threshold:
+                self.image2_position = rms
+            else:
+                self.image2_position = 0
 
     def stop_audio_processing(self):
         if self.stream is not None:
@@ -189,6 +197,9 @@ class ImageCombinationApp:
             self.stream.stop_stream()
             self.stream.close()
             self.stream = None
+
+    def update_bobbing_threshold(self, value):
+        self.bobbing_threshold = int(value)
 
     def close_app(self):
         self.stop_audio_processing()
