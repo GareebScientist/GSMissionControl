@@ -10,6 +10,7 @@ import math
 import threading
 import pygame
 
+
 class ImageCombinationApp:
     def __init__(self):
         self.window = tk.Tk()
@@ -21,6 +22,7 @@ class ImageCombinationApp:
         self.microphone_variable = tk.StringVar(self.window, self.microphone_inputs[0])
         self.processing = False
         self.stream = None
+        self.image2_position = 0
 
         self.load_image_paths()
 
@@ -30,7 +32,7 @@ class ImageCombinationApp:
             frame = tk.Frame(self.window)
             frame.pack(pady=10)
 
-            button = tk.Button(frame, text=f"Select Image {i+1}", command=lambda idx=i: self.select_image(idx))
+            button = tk.Button(frame, text=f"Select Image {i + 1}", command=lambda idx=i: self.select_image(idx))
             button.pack(side=tk.LEFT, padx=5)
             self.buttons_select_image.append(button)
 
@@ -43,7 +45,8 @@ class ImageCombinationApp:
 
         self.get_microphone_inputs()
 
-        self.microphone_dropdown = tk.OptionMenu(self.window, self.microphone_variable, *self.microphone_inputs, command=self.start_audio_processing)
+        self.microphone_dropdown = tk.OptionMenu(self.window, self.microphone_variable, *self.microphone_inputs,
+                                                 command=self.start_audio_processing)
         self.microphone_dropdown.pack(pady=10)
 
         self.gradient_canvas = tk.Canvas(self.window, width=200, height=20)
@@ -90,7 +93,8 @@ class ImageCombinationApp:
     def display_images(self):
         combined_image = self.combine_images()
         if combined_image is not None:
-            self.display_pygame_window(combined_image)
+            pygame_thread = threading.Thread(target=self.display_pygame_window, args=(combined_image,))
+            pygame_thread.start()
 
     def combine_images(self):
         if all(image is not None for image in self.images):
@@ -104,33 +108,38 @@ class ImageCombinationApp:
             return combined_image
 
     def display_pygame_window(self, combined_image):
-        # Convert the image to RGB format
-        combined_image = cv2.cvtColor(combined_image, cv2.COLOR_BGRA2RGB)
-
-        # Create a Pygame surface from the image
-        combined_image_surface = pygame.image.fromstring(combined_image.tobytes(), combined_image.shape[1::-1], 'RGB')
-
-        # Initialize Pygame
         pygame.init()
 
-        # Create a Pygame window
-        window = pygame.display.set_mode(combined_image.shape[1::-1])
+        max_height, max_width, _ = combined_image.shape
+        window = pygame.display.set_mode((max_width, max_height))
 
-        # Main game loop
+        surfaces = []
+        for image in self.images:
+            if image is not None:
+                if image.shape[0] != max_height or image.shape[1] != max_width:
+                    image = cv2.resize(image, (max_width, max_height))
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+                surface = pygame.image.fromstring(image.tobytes(), image.shape[1::-1], 'RGBA')
+                surface = pygame.Surface.convert_alpha(surface)
+                surfaces.append(surface)
+
         running = True
         while running:
-            # Event handling
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
 
-            # Draw the image onto the window
-            window.blit(combined_image_surface, (0, 0))
+            window.fill((0, 0, 0))
 
-            # Update the display
+            for i, surface in enumerate(surfaces):
+                position = (0, 0)
+                if i == 1:
+                    position = (0, self.image2_position)  # Adjust the position of image 2
+
+                window.blit(surface, position)
+
             pygame.display.flip()
 
-        # Quit Pygame
         pygame.quit()
 
     def load_image_paths(self):
@@ -154,12 +163,14 @@ class ImageCombinationApp:
         if microphone_name != "Select Microphone":
             selected_microphone_index = self.microphone_inputs.index(microphone_name) - 1
             self.stop_audio_processing()
-            audio_thread = threading.Thread(target=self.audio_processing, args=(selected_microphone_index,), daemon=True)
+            audio_thread = threading.Thread(target=self.audio_processing, args=(selected_microphone_index,),
+                                            daemon=True)
             audio_thread.start()
 
     def audio_processing(self, selected_microphone_index):
         audio = pyaudio.PyAudio()
-        self.stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, input_device_index=selected_microphone_index, frames_per_buffer=1024)
+        self.stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True,
+                                 input_device_index=selected_microphone_index, frames_per_buffer=1024)
         self.processing = True
         while self.processing:
             data = self.stream.read(1024)
@@ -168,6 +179,9 @@ class ImageCombinationApp:
 
             # Update the width of the gradient bar
             self.gradient_canvas.coords(self.gradient_bar, 0, 0, rms * 2, 20)  # Multiplied by 2 to get visible change
+
+            # Update the position of image 2 based on the rms value
+            self.image2_position = rms
 
     def stop_audio_processing(self):
         if self.stream is not None:
@@ -179,6 +193,7 @@ class ImageCombinationApp:
     def close_app(self):
         self.stop_audio_processing()
         self.window.destroy()
+
 
 if __name__ == "__main__":
     app = ImageCombinationApp()
