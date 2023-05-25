@@ -54,7 +54,7 @@ class ImageCombinationApp:
         self.gradient_canvas.pack(pady=10)
         self.gradient_bar = self.gradient_canvas.create_rectangle(0, 0, 0, 20, fill='green')
 
-        self.bobbing_slider = ttk.Scale(self.window, from_=0, to=100, length=200, command=self.update_bobbing_threshold)
+        self.bobbing_slider = tk.Scale(self.window, from_=0, to=200, length=200, command=self.update_bobbing_threshold)
         self.bobbing_slider.pack(pady=10)
         self.bobbing_slider.set(self.bobbing_threshold)
 
