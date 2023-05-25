@@ -30,6 +30,12 @@ class CountdownThread(threading.Thread):
         self.stop_requested.set()
         threading.Thread.join(self, timeout)
 
+    def increase_time(self, secs):
+        self.t += secs
+
+    def decrease_time(self, secs):
+        self.t -= secs
+
 def write_time_to_file(t, sign):
     mins, secs = divmod(t, 60)
     hours, mins = divmod(mins, 60)
@@ -78,7 +84,7 @@ def toggle_countdown():
         toggle_button.config(text="Stop Timer")
 
 root = Tk()
-root.geometry("400x250")  # Adjust the window size
+root.geometry("500x400")  # Adjust the window size
 root.title("Rocket Countdown Timer")
 
 time_str = StringVar()
@@ -94,6 +100,12 @@ sec_entry.pack()
 
 toggle_button = Button(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
 toggle_button.pack()
+
+for i in range(1, 6):
+    Button(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).pack()
+
+for i in range(1, 6):
+    Button(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).pack()
 
 Label(root, textvariable=time_str, font=("Helvetica", 20)).pack()
 
