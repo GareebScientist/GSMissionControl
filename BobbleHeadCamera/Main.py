@@ -95,8 +95,15 @@ class ImageCombinationApp:
 
     def combine_images(self):
         if all(image is not None for image in self.images):
-            combined_image = np.hstack(self.images)
+            max_height = max(image.shape[0] for image in self.images)
+            max_width = max(image.shape[1] for image in self.images)
+            combined_image = np.zeros((max_height, max_width, 4), dtype=np.uint8)
+            for image in self.images:
+                if image.shape[0] != max_height or image.shape[1] != max_width:
+                    image = cv2.resize(image, (max_width, max_height))
+                combined_image[image[:, :, 3] > 0] = image[image[:, :, 3] > 0]
             return combined_image
+
 
     def load_image_paths(self):
         try:
