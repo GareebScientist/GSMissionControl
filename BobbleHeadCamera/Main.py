@@ -15,15 +15,17 @@ class ImageCombinationApp:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Image Combination")
-        self.images = [None, None, None]
-        self.thumbnails = [None, None, None]
-        self.image_paths = [None, None, None]
+        self.images = [None, None, None, None]
+        self.thumbnails = [None, None, None, None]
+        self.image_paths = [None, None, None, None]
         self.microphone_inputs = ["Select Microphone"]
         self.microphone_variable = tk.StringVar(self.window, self.microphone_inputs[0])
         self.processing = False
         self.stream = None
         self.image2_position = 0
         self.bobbing_threshold = 20
+        self.angry_mode = False
+        self.angry_image = None
 
         self.load_image_paths()
 
@@ -41,6 +43,9 @@ class ImageCombinationApp:
             thumbnail.pack(side=tk.LEFT)
             self.labels_thumbnails.append(thumbnail)
 
+        self.button_select_angry_image = tk.Button(self.window, text="Select Angry Image", command=self.select_angry_image)
+        self.button_select_angry_image.pack(pady=10)
+
         self.button_combine_images = tk.Button(self.window, text="Combine Images", command=self.display_images)
         self.button_combine_images.pack(pady=10)
 
@@ -54,9 +59,16 @@ class ImageCombinationApp:
         self.gradient_canvas.pack(pady=10)
         self.gradient_bar = self.gradient_canvas.create_rectangle(0, 0, 0, 20, fill='green')
 
-        self.bobbing_slider = tk.Scale(self.window, from_=0, to=200, length=200, command=self.update_bobbing_threshold)
+        self.bobbing_slider = tk.Scale(self.window, from_=0, to=200, orient=tk.HORIZONTAL,
+                                       length=200, command=self.update_bobbing_threshold)
         self.bobbing_slider.pack(pady=10)
         self.bobbing_slider.set(self.bobbing_threshold)
+
+        self.angry_mode_var = tk.BooleanVar()
+        self.angry_mode_var.set(False)
+        self.checkbutton_angry_mode = tk.Checkbutton(self.window, text="Angry Mode",
+                                                     variable=self.angry_mode_var, command=self.toggle_angry_mode)
+        self.checkbutton_angry_mode.pack(pady=10)
 
         self.display_thumbnails()
 
@@ -79,8 +91,10 @@ class ImageCombinationApp:
             self.images[idx] = image
             self.thumbnails[idx] = thumbnail
             self.image_paths[idx] = path
+
             self.display_thumbnails()
             self.save_image_paths()
+
 
     def create_thumbnail(self, image):
         thumbnail_size = (100, 100)
@@ -91,9 +105,10 @@ class ImageCombinationApp:
 
     def display_thumbnails(self):
         for i, thumbnail in enumerate(self.thumbnails):
-            if thumbnail is not None:
+            if thumbnail is not None and i < len(self.labels_thumbnails):
                 self.labels_thumbnails[i].config(image=thumbnail)
                 self.labels_thumbnails[i].image = thumbnail
+
 
     def display_images(self):
         combined_image = self.combine_images()
@@ -110,6 +125,11 @@ class ImageCombinationApp:
                 if image.shape[0] != max_height or image.shape[1] != max_width:
                     image = cv2.resize(image, (max_width, max_height))
                 combined_image[image[:, :, 3] > 0] = image[image[:, :, 3] > 0]
+            
+            if self.angry_mode and self.angry_image is not None:
+                combined_image[self.image2_position:self.image2_position + self.angry_image.shape[0],
+                               :self.angry_image.shape[1]] = self.angry_image
+            
             return combined_image
 
     def display_pygame_window(self, combined_image):
@@ -141,11 +161,17 @@ class ImageCombinationApp:
                 if i == 1:
                     position = (0, self.image2_position)  # Adjust the position of image 2
 
+                if i == 3 and self.angry_mode:  # Display angry image only when angry mode is on
+                    position = (0, self.image2_position)  # Same position as image 2 for angry image
+                elif i == 3 and not self.angry_mode:
+                    position = (1900, 1900)
+
                 window.blit(surface, position)
 
             pygame.display.flip()
 
         pygame.quit()
+
 
     def load_image_paths(self):
         try:
@@ -157,8 +183,15 @@ class ImageCombinationApp:
                     self.images[i] = image
                     self.thumbnails[i] = thumbnail
                     self.image_paths[i] = path
+
+                # Load the angry image at index 3
+                angry_image = cv2.imread(paths[3], cv2.IMREAD_UNCHANGED)
+                angry_thumbnail = self.create_thumbnail(angry_image)
+                self.thumbnails[3] = angry_thumbnail
+
         except FileNotFoundError:
             pass
+
 
     def save_image_paths(self):
         with open("paths.json", "w") as f:
@@ -200,6 +233,15 @@ class ImageCombinationApp:
 
     def update_bobbing_threshold(self, value):
         self.bobbing_threshold = int(value)
+
+    def toggle_angry_mode(self):
+        self.angry_mode = self.angry_mode_var.get()
+
+    def select_angry_image(self):
+        path = filedialog.askopenfilename()
+        if path:
+            image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+            self.angry_image = image
 
     def close_app(self):
         self.stop_audio_processing()
