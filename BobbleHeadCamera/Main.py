@@ -157,20 +157,16 @@ class ImageCombinationApp:
             window.fill((0, 0, 0))
 
             for i, surface in enumerate(surfaces):
-                position = (0, 0)
-                if i == 1:
-                    position = (0, self.image2_position)  # Adjust the position of image 2
-
-                if i == 3 and self.angry_mode:  # Display angry image only when angry mode is on
-                    position = (0, self.image2_position)  # Same position as image 2 for angry image
-                elif i == 3 and not self.angry_mode:
-                    position = (1900, 1900)
-
-                window.blit(surface, position)
+                if i != 3 or (i == 3 and self.angry_mode):
+                    position = (0, 0)
+                    if i == 1 or i == 3:  # Adjust the position of image 2 and angry image
+                        position = (0, self.image2_position)
+                    window.blit(surface, position)
 
             pygame.display.flip()
 
         pygame.quit()
+
 
 
     def load_image_paths(self):
