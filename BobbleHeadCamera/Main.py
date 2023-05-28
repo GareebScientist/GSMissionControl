@@ -209,7 +209,7 @@ class ImageCombinationApp:
         while self.processing:
             data = self.stream.read(1024)
             rms = audioop.rms(data, 2)  # measure of the power level
-            rms = max(min(int(math.log(rms, 3) * 6), 100), 0)
+            rms = max(min(int(math.log(max(rms, 1), 3) * 6), 100), 0)
 
             # Update the width of the gradient bar
             self.gradient_canvas.coords(self.gradient_bar, 0, 0, rms * 2, 20)  # Multiplied by 2 to get visible change
