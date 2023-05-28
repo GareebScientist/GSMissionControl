@@ -218,7 +218,7 @@ class ImageCombinationApp:
         self.stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, input_device_index=selected_microphone_index, frames_per_buffer=1024)
         self.processing = True
         while self.processing:
-            data = self.stream.read(1024)
+            data = self.stream.read(1024, exception_on_overflow = False)
             rms = audioop.rms(data, 2)  # measure of the power level
             rms = max(min(int(math.log(max(rms, 1), 3) * 6), 100), 0)
 
