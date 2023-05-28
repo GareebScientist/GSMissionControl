@@ -113,6 +113,7 @@ class ImageCombinationApp:
     def display_images(self):
         combined_image = self.combine_images()
         if combined_image is not None:
+            print("here")
             pygame_thread = threading.Thread(target=self.display_pygame_window, args=(combined_image,))
             pygame_thread.start()
 
@@ -173,20 +174,25 @@ class ImageCombinationApp:
         try:
             with open("paths.json", "r") as f:
                 paths = json.load(f)
-                for i, path in enumerate(paths):
+                for i, path in enumerate(paths[:3]):
+                    if path == None:
+                        raise FileNotFoundError(path)
                     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
                     thumbnail = self.create_thumbnail(image)
                     self.images[i] = image
                     self.thumbnails[i] = thumbnail
                     self.image_paths[i] = path
-
+                
+                if paths[3] == None:
+                    raise FileNotFoundError("Angry Image")
                 # Load the angry image at index 3
                 angry_image = cv2.imread(paths[3], cv2.IMREAD_UNCHANGED)
                 angry_thumbnail = self.create_thumbnail(angry_image)
                 self.thumbnails[3] = angry_thumbnail
 
-        except FileNotFoundError:
-            pass
+        except FileNotFoundError as e:
+            print("The file could not be found ")
+            print("Original error was :\n",e)
 
 
     def save_image_paths(self):
