@@ -3,7 +3,7 @@ import time
 import threading
 import pytz
 from datetime import datetime
-from tkinter import Tk, Label, Entry, Button, StringVar
+import customtkinter
 
 class CountdownThread(threading.Thread):
     def __init__(self, t):
@@ -53,7 +53,7 @@ def toggle_countdown():
     if countdown_thread:
         countdown_thread.join()
         countdown_thread = None
-        toggle_button.config(text="Start Timer")
+        toggle_button.configure(text="Start Timer")
     else:
         t = 0
         utc_time_str = utc_entry.get()  # Get the entered UTC time
@@ -85,8 +85,9 @@ def toggle_countdown():
 
         countdown_thread = CountdownThread(int(t))
         countdown_thread.start()
-        toggle_button.config(text="Stop Timer")
+        toggle_button.configure(text="Stop Timer")
 
+<<<<<<< HEAD
 def receive_value_from_client():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", 12345))
@@ -106,29 +107,36 @@ def receive_value_from_client():
 
 root = Tk()
 root.geometry("600x500")  # Adjust the window size
+=======
+customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
+customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
+
+root = customtkinter.CTk()
+root.geometry("800x400")  # Adjust the window size
+>>>>>>> b4b03ed (implementing customtkinter for better ui)
 root.title("Rocket Countdown Timer")
 
-time_str = StringVar()
+time_str = customtkinter.StringVar()
 countdown_thread = None
 
-Label(root, text="Enter UTC time (YYYY-MM-DD HH:MM:SS):", font=("Helvetica", 14)).grid(row=0, column=0, columnspan=5)
-utc_entry = Entry(root, font=("Helvetica", 12))
-utc_entry.grid(row=1, column=0, columnspan=5)
+customtkinter.CTkLabel(root, text="Enter UTC time (YYYY-MM-DD HH:MM:SS):", font=("Helvetica", 14)).grid(row=0, column=0, columnspan=5)
+utc_entry = customtkinter.CTkEntry(root, font=("Helvetica", 12))
+utc_entry.grid(row=1, column=0, columnspan=5,pady=10 ,padx=10)
 
-Label(root, text="OR Enter seconds:", font=("Helvetica", 14)).grid(row=2, column=0, columnspan=5)
-sec_entry = Entry(root, font=("Helvetica", 12))
-sec_entry.grid(row=3, column=0, columnspan=5)
+customtkinter.CTkLabel(root, text="OR Enter seconds:", font=("Helvetica", 14)).grid(row=2, column=0, columnspan=5)
+sec_entry = customtkinter.CTkEntry(root, font=("Helvetica", 12))
+sec_entry.grid(row=3, column=0, columnspan=5,pady=10 ,padx=10)
 
-toggle_button = Button(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
-toggle_button.grid(row=4, column=0, columnspan=5)
-
-for i in range(1, 6):
-    Button(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=5, column=i-1)
+toggle_button = customtkinter.CTkButton(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
+toggle_button.grid(row=4, column=0, columnspan=5,pady=10 ,padx=10)
 
 for i in range(1, 6):
-    Button(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=6, column=i-1)
+    customtkinter.CTkButton(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=5, column=i-1,pady=10 ,padx=10)
 
-Label(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=7, column=0, columnspan=5)
+for i in range(1, 6):
+    customtkinter.CTkButton(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=6, column=i-1,pady=10 ,padx=10)
+
+customtkinter.CTkLabel(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=7, column=0, columnspan=5,pady=10 ,padx=10)
 
 client_thread = threading.Thread(target=receive_value_from_client)
 client_thread.start()
