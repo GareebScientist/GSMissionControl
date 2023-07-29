@@ -87,10 +87,7 @@ def toggle_countdown():
         countdown_thread.start()
         toggle_button.configure(text="Stop Timer")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 2375dc5 (custom tkinter)
+
 def receive_value_from_client():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", 12345))
@@ -103,24 +100,23 @@ def receive_value_from_client():
             try:
                 # Convert the received data to an integer value and set it as the new timer value
                 new_timer_value = int(data.decode())
-                countdown_thread.set_time(new_timer_value)
+                utc_entry.delete(0, customtkinter.END)
+                sec_entry.delete(0, customtkinter.END)
+                sec_entry.insert(0, str(new_timer_value))
+
+                if countdown_thread:
+                    toggle_countdown()
+                    toggle_countdown()
+                else:
+                    toggle_countdown()
             except ValueError:
                 print("Received invalid data from the server.")
 
-
-<<<<<<< HEAD
-root = Tk()
-root.geometry("600x500")  # Adjust the window size
-=======
-=======
-
->>>>>>> 2375dc5 (custom tkinter)
 customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
 
 root = customtkinter.CTk()
 root.geometry("800x400")  # Adjust the window size
->>>>>>> b4b03ed (implementing customtkinter for better ui)
 root.title("Rocket Countdown Timer")
 
 time_str = customtkinter.StringVar()
@@ -149,3 +145,9 @@ client_thread = threading.Thread(target=receive_value_from_client)
 client_thread.start()
 
 root.mainloop()
+
+#code to reset clock from a socket call via client app
+# client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# client_socket.connect(("127.0.0.1", 12345))
+# client_socket.sendall(str(10).encode())  # Serialize the boolean value to string
+# client_socket.close()
