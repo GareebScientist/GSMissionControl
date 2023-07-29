@@ -1,3 +1,4 @@
+import socket
 import time
 import threading
 import pytz
@@ -35,6 +36,9 @@ class CountdownThread(threading.Thread):
 
     def decrease_time(self, secs):
         self.t -= secs
+
+    def set_time(self,secs):
+        self.t=secs
 
 def write_time_to_file(t, sign):
     mins, secs = divmod(t, 60)
@@ -83,6 +87,23 @@ def toggle_countdown():
         countdown_thread.start()
         toggle_button.config(text="Stop Timer")
 
+def receive_value_from_client():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("127.0.0.1", 12345))
+    server_socket.listen(1)
+
+    while True:
+        conn, addr = server_socket.accept()
+        data = conn.recv(1024)
+        if data:
+            try:
+                # Convert the received data to an integer value and set it as the new timer value
+                new_timer_value = int(data.decode())
+                countdown_thread.set_time(new_timer_value)
+            except ValueError:
+                print("Received invalid data from the server.")
+
+
 root = Tk()
 root.geometry("600x500")  # Adjust the window size
 root.title("Rocket Countdown Timer")
@@ -108,5 +129,8 @@ for i in range(1, 6):
     Button(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=6, column=i-1)
 
 Label(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=7, column=0, columnspan=5)
+
+client_thread = threading.Thread(target=receive_value_from_client)
+client_thread.start()
 
 root.mainloop()
