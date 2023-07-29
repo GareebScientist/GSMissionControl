@@ -88,6 +88,9 @@ def toggle_countdown():
         toggle_button.configure(text="Stop Timer")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 2375dc5 (custom tkinter)
 def receive_value_from_client():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", 12345))
@@ -105,9 +108,13 @@ def receive_value_from_client():
                 print("Received invalid data from the server.")
 
 
+<<<<<<< HEAD
 root = Tk()
 root.geometry("600x500")  # Adjust the window size
 =======
+=======
+
+>>>>>>> 2375dc5 (custom tkinter)
 customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
 
