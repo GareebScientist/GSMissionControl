@@ -55,42 +55,43 @@ def toggle_countdown():
         countdown_thread = None
         toggle_button.configure(text="Start Timer")
     else:
-        t = 0
-        utc_time_str = utc_entry.get()  # Get the entered UTC time
+        t_seconds = 0
+        t_minutes = 0
+
+        utc_time_str = utc_entry.get()
         sec_str = sec_entry.get()
+        min_str = min_entry.get()  # Get the entered minutes
 
-        if utc_time_str:  # If a UTC time was entered
+        # Parse seconds and minutes if provided
+        if sec_str:
+            t_seconds = int(sec_str)
+        if min_str:
+            t_minutes = int(min_str) * 60  # Convert minutes to seconds
+
+        if utc_time_str:
             try:
-                utc_time = datetime.strptime(utc_time_str, '%Y-%m-%d %H:%M:%S')  # Parse the string into a datetime object
-                utc_time = pytz.utc.localize(utc_time)  # Ensure the datetime object is timezone-aware
-                current_time = datetime.now(pytz.utc)  # Get the current time in UTC
-
-                # Calculate the time difference in seconds
+                utc_time = datetime.strptime(utc_time_str, '%Y-%m-%d %H:%M:%S')
+                utc_time = pytz.utc.localize(utc_time)
+                current_time = datetime.now(pytz.utc)
                 time_diff = utc_time - current_time
-                t = time_diff.total_seconds()
+                t_seconds = time_diff.total_seconds()
 
-                if t < 0:  # If the entered time is in the past, display an error and return
+                if t_seconds < 0:
                     time_str.set("Error: Entered time is in the past")
                     return
             except Exception as e:
                 print("Error parsing UTC time: ", e)
-                if sec_str:
-                    t = int(sec_str)
-                else:
-                    return
-        elif sec_str:
-            t = int(sec_str)
-        else:
-            return
 
-        countdown_thread = CountdownThread(int(t))
-        countdown_thread.start()
-        toggle_button.configure(text="Stop Timer")
+        t_total = t_seconds + t_minutes  # Calculate the total time in seconds
 
+        if t_total > 0:
+            countdown_thread = CountdownThread(int(t_total))
+            countdown_thread.start()
+            toggle_button.configure(text="Stop Timer")
 
 def receive_value_from_client():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("127.0.0.1", 12345))
+    server_socket.bind(("127.0.0.1", 54321))
     server_socket.listen(1)
 
     while True:
@@ -103,6 +104,7 @@ def receive_value_from_client():
                 utc_entry.delete(0, customtkinter.END)
                 sec_entry.delete(0, customtkinter.END)
                 sec_entry.insert(0, str(new_timer_value))
+                min_entry.delete(0,customtkinter.END)
 
                 if countdown_thread:
                     toggle_countdown()
@@ -130,16 +132,20 @@ customtkinter.CTkLabel(root, text="OR Enter seconds:", font=("Helvetica", 14)).g
 sec_entry = customtkinter.CTkEntry(root, font=("Helvetica", 12))
 sec_entry.grid(row=3, column=0, columnspan=5,pady=10 ,padx=10)
 
+customtkinter.CTkLabel(root, text="OR Enter Minutes:", font=("Helvetica", 14)).grid(row=4, column=0, columnspan=5)
+min_entry = customtkinter.CTkEntry(root, font=("Helvetica", 12))
+min_entry.grid(row=5, column=0, columnspan=5,pady=10 ,padx=10)
+
 toggle_button = customtkinter.CTkButton(root, text="Start Timer", command=toggle_countdown, font=("Helvetica", 14))
-toggle_button.grid(row=4, column=0, columnspan=5,pady=10 ,padx=10)
+toggle_button.grid(row=6, column=0, columnspan=5,pady=10 ,padx=10)
 
 for i in range(1, 6):
-    customtkinter.CTkButton(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=5, column=i-1,pady=10 ,padx=10)
+    customtkinter.CTkButton(root, text=f"+{i} sec", command=lambda i=i: countdown_thread.increase_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=7, column=i-1,pady=10 ,padx=10)
 
 for i in range(1, 6):
-    customtkinter.CTkButton(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=6, column=i-1,pady=10 ,padx=10)
+    customtkinter.CTkButton(root, text=f"-{i} sec", command=lambda i=i: countdown_thread.decrease_time(i) if countdown_thread else None, font=("Helvetica", 14)).grid(row=8, column=i-1,pady=10 ,padx=10)
 
-customtkinter.CTkLabel(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=7, column=0, columnspan=5,pady=10 ,padx=10)
+customtkinter.CTkLabel(root, textvariable=time_str, font=("Helvetica", 20)).grid(row=9, column=0, columnspan=5,pady=10 ,padx=10)
 
 client_thread = threading.Thread(target=receive_value_from_client)
 client_thread.start()
